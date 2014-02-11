@@ -1,7 +1,83 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/container"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context="is.biosyningar.MainActivity"
-    tools:ignore="MergeRootFrame" />
+    android:layout_height="match_parent">
+
+    <ProgressBar
+        android:id="@+id/progressIndicator"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:indeterminateOnly="true"
+        android:visibility="visible"/>
+
+    <ListView
+        android:id="@+id/cinemaSchedules"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:choiceMode="singleChoice"
+        android:dividerHeight="1dp"
+        android:divider="@color/base_color"/>
+
+    <com.slidinglayer.SlidingLayer
+        android:id="@+id/slidingLayer1"
+        android:layout_width="@dimen/layer_width"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        app:shadowDrawable="@drawable/sidebar_shadow"
+        app:shadowWidth="@dimen/shadow_width"
+        app:stickTo="right"
+        app:closeOnTapEnabled="false">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/base_color">
+
+            <ExpandableListView
+                android:id="@+id/expand_showtimes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:divider="#fff"
+                android:dividerHeight="1dp"
+                android:childDivider="@color/base_color"/>
+
+        </LinearLayout>
+
+    </com.slidinglayer.SlidingLayer>
+
+    <RelativeLayout
+        android:id="@+id/error_layout"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/no_scedules_found"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/no_schedules"
+            style="@style/BaseTextStyle.Large"/>
+
+        <Button
+            android:id="@+id/try_again_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/no_scedules_found"
+            android:gravity="center"
+            android:layout_centerInParent="true"
+            style="?android:attr/borderlessButtonStyle"
+            android:textColor="#fff"
+            android:text="@string/try_again"
+            android:typeface="serif"
+            android:layout_marginTop="10sp"
+            android:background="@drawable/button_selector"/>
+
+        </RelativeLayout>
+
+</RelativeLayout><!-- From: file:/C:/Users/Arnar/AndroidStudioProjects/CinemaMovies/CinemaMovies/src/main/res/layout/activity_main.xml -->

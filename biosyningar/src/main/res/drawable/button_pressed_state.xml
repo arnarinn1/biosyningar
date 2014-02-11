@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="@color/button_start_color"
+        android:endColor="@color/action_bar_color"
+        android:angle="90" />
+
+    <corners android:radius="4dp" />
+</shape><!-- From: file:/C:/Users/Arnar/AndroidStudioProjects/CinemaMovies/CinemaMovies/src/main/res/drawable/button_pressed_state.xml -->

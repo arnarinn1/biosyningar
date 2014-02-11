@@ -1,8 +1,35 @@
 <resources>
 
-    <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+
         <!-- Customize your theme here. -->
+        <item name="android:actionBarStyle">@style/GrumpyActionBarStyle</item>
+    </style>
+
+    <style name="AppTheme.ActionBarTitleText" parent="@android:style/TextAppearance">
+        <item name="android:textColor">@color/action_bar_text_color</item>
+    </style>
+
+    <style name="BaseTextStyle" parent="@android:style/TextAppearance.Medium">
+        <item name="android:typeface">serif</item>
+        <item name="android:paddingLeft">5sp</item>
+    </style>
+
+    <style name="BaseTextStyle.Large">
+        <item name="android:textSize">20sp</item>
+    </style>
+
+    <style name="BaseTextStyle.Medium">
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="BaseTextStyle.Small">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="GrumpyActionBarStyle" parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:background">@color/action_bar_color</item>
+        <item name="android:titleTextStyle">@style/AppTheme.ActionBarTitleText</item>
     </style>
 
 </resources>
