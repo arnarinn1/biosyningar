@@ -4,4 +4,4 @@
     <item android:state_pressed="true" android:drawable="@drawable/button_pressed_state" />
     <item android:state_focused="false" android:drawable="@drawable/button_normal_state" />
 
-</selector><!-- From: file:/C:/Users/Arnar/AndroidStudioProjects/CinemaMovies/CinemaMovies/src/main/res/drawable/button_selector.xml -->
+</selector>

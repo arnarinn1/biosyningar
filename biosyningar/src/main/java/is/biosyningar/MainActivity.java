@@ -13,7 +13,6 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
 import com.slidinglayer.SlidingLayer;
-import com.squareup.picasso.Picasso;
 
 import is.biosyningar.adapters.CinemaAdapter;
 import is.biosyningar.adapters.ShowTimesAdapter;

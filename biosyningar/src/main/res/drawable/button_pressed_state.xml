@@ -8,4 +8,4 @@
         android:angle="90" />
 
     <corners android:radius="4dp" />
-</shape><!-- From: file:/C:/Users/Arnar/AndroidStudioProjects/CinemaMovies/CinemaMovies/src/main/res/drawable/button_pressed_state.xml -->
+</shape>

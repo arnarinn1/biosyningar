@@ -4,18 +4,26 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content">
 
-    <ImageView
-        android:id="@+id/movie_poster"
-        android:layout_width="80sp"
-        android:layout_height="100sp"
-        android:scaleType="centerCrop"
-        android:contentDescription="@string/movie_poster"/>
+    <FrameLayout
+        android:id="@+id/movie_posterr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:foreground="@drawable/image_selector">
+
+        <ImageView
+            android:id="@+id/movie_poster"
+            android:layout_width="80sp"
+            android:layout_height="100sp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/movie_poster"/>
+
+    </FrameLayout>
 
     <TextView
         android:id="@+id/movie_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/movie_poster"
+        android:layout_toRightOf="@+id/movie_posterr"
         style="@style/BaseTextStyle.Medium"/>
 
     <TextView
@@ -23,7 +31,7 @@
         android:layout_below="@+id/movie_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/movie_poster"
+        android:layout_toRightOf="@+id/movie_posterr"
         style="@style/BaseTextStyle.Small"/>
 
     <TextView
@@ -31,7 +39,7 @@
         android:layout_below="@+id/movie_score"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/movie_poster"
+        android:layout_toRightOf="@+id/movie_posterr"
         style="@style/BaseTextStyle.Small"/>
 
 </RelativeLayout>

@@ -1,2 +1,3 @@
 include ':biosyningar'
 include 'libraries:androidslidinglayer'
+include 'libraries:androidphotoview'
