@@ -1,19 +1,25 @@
 package is.biosyningar;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
-
+import android.widget.TextView;
+import android.widget.Toast;
 import com.slidinglayer.SlidingLayer;
 
+import butterknife.ButterKnife;
+import butterknife.InjectView;
 import is.biosyningar.adapters.CinemaAdapter;
 import is.biosyningar.adapters.ShowTimesAdapter;
 import is.biosyningar.datacontracts.CinemaMovie;
@@ -27,15 +33,13 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
 {
     public static final String ApisUrl = "http://apis.is";
 
-    private SlidingLayer mSlidingLayer;
-    private ListView mListView;
+    @InjectView(R.id.slidingLayer) SlidingLayer mSlidingLayer;
+    @InjectView(R.id.cinemaSchedules) ListView mListView;
+    @InjectView(R.id.progressIndicator) ProgressBar mProgressBar;
+    @InjectView(R.id.error) TextView mErrorText;
+
     private CinemaAdapter mAdapter;
-    private ProgressBar mProgressBar;
-    private Button mTryAgainButton;
-    private RelativeLayout mHiddenLayout;
-
-    private Apis apisClient;
-
+    private Apis service;
     private Context getContext() { return this; }
 
     @Override
@@ -44,15 +48,17 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        AttachViews();
-        AttachEventListeners();
+        ButterKnife.inject(this);
+
+        mListView.setOnItemClickListener(this);
 
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setEndpoint(ApisUrl)
                 .build();
 
-        apisClient = restAdapter.create(Apis.class);
-        apisClient.getMovies("cinema", callback);
+        service = restAdapter.create(Apis.class);
+
+        registerReceiver(new ConnectionChangeReceiver(), new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
     Callback<CinemaResults> callback = new Callback<CinemaResults>()
@@ -60,8 +66,8 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         @Override
         public void success(CinemaResults cinemaResults, Response response)
         {
-            mHiddenLayout.setVisibility(View.GONE);
-            EnforceViewBehaviorOnNetworkCall(View.GONE, true);
+            mErrorText.setVisibility(View.GONE);
+            EnforceViewBehaviorOnNetworkCall(View.GONE);
 
             mAdapter = new CinemaAdapter(getContext(), R.layout.listview_cinema, cinemaResults.getMovies());
             mListView.setAdapter(mAdapter);
@@ -70,8 +76,9 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         @Override
         public void failure(RetrofitError retrofitError)
         {
-            EnforceViewBehaviorOnNetworkCall(View.GONE, true);
-            mHiddenLayout.setVisibility(View.VISIBLE);
+            EnforceViewBehaviorOnNetworkCall(View.GONE);
+            mErrorText.setVisibility(View.VISIBLE);
+            mErrorText.setText(R.string.no_schedules);
         }
     };
 
@@ -89,34 +96,9 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         }
     }
 
-    private void EnforceViewBehaviorOnNetworkCall(int progressBarVisible, boolean buttonEnabled)
+    private void EnforceViewBehaviorOnNetworkCall(int progressBarVisible)
     {
         mProgressBar.setVisibility(progressBarVisible);
-        mTryAgainButton.setEnabled(buttonEnabled);
-    }
-
-    private void AttachViews()
-    {
-        mSlidingLayer = (SlidingLayer) findViewById(R.id.slidingLayer1);
-        mListView = (ListView) findViewById(R.id.cinemaSchedules);
-        mProgressBar = (ProgressBar) findViewById(R.id.progressIndicator);
-        mHiddenLayout = (RelativeLayout) findViewById(R.id.error_layout);
-        mTryAgainButton = (Button) findViewById(R.id.try_again_button);
-    }
-
-    private void AttachEventListeners()
-    {
-        mListView.setOnItemClickListener(this);
-
-        mTryAgainButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                apisClient.getMovies("cinema", callback);
-                EnforceViewBehaviorOnNetworkCall(View.VISIBLE, false);
-            }
-        });
     }
 
     @Override
@@ -132,6 +114,43 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                 }
             default:
                 return super.onKeyDown(keyCode, event);
+        }
+    }
+
+    private class ConnectionChangeReceiver extends BroadcastReceiver
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+            NetworkInfo wifiStatus   = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            NetworkInfo mobileStatus = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+
+            boolean wifiNetworkStatus = (wifiStatus != null && wifiStatus.isConnected());
+            boolean mobileNetworkStatus = (mobileStatus != null && mobileStatus.isConnected());
+
+            if(wifiNetworkStatus || mobileNetworkStatus)
+            {
+                if (mAdapter != null) return;
+
+                EnforceViewBehaviorOnNetworkCall(View.VISIBLE);
+                service.getMovies("cinema", callback);
+                Toast.makeText(context, "Connected to network", Toast.LENGTH_SHORT).show();
+
+            }
+            else
+            {
+                EnforceViewBehaviorOnNetworkCall(View.GONE);
+
+                if (mAdapter == null)
+                {
+                    mErrorText.setVisibility(View.VISIBLE);
+                    mErrorText.setText(R.string.not_connected_network);
+                }
+
+                Toast.makeText( context, "Not connected to network", Toast.LENGTH_SHORT ).show();
+            }
         }
     }
 }

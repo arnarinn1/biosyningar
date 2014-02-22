@@ -9,13 +9,14 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.squareup.picasso.LruCache;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
+import butterknife.ButterKnife;
+import butterknife.InjectView;
 import is.biosyningar.PhotoActivity;
 import is.biosyningar.R;
 import is.biosyningar.datacontracts.CinemaMovie;
@@ -37,10 +38,15 @@ public class CinemaAdapter extends BaseAdapter
 
     static class CinemaHolder
     {
-        TextView title;
-        ImageView image;
-        TextView imdb;
-        TextView restricted;
+        public CinemaHolder(View view)
+        {
+            ButterKnife.inject(this, view);
+        }
+
+        @InjectView(R.id.movie_title) TextView title;
+        @InjectView(R.id.movie_poster) ImageView image;
+        @InjectView(R.id.movie_score) TextView imdb;
+        @InjectView(R.id.movie_restrictions) TextView restricted;
     }
 
     @Override
@@ -54,12 +60,7 @@ public class CinemaAdapter extends BaseAdapter
             LayoutInflater inflater = ((Activity) mContext).getLayoutInflater();
             row = inflater.inflate(layoutResourceId, parent, false);
 
-            holder = new CinemaHolder();
-            holder.title = (TextView) row.findViewById(R.id.movie_title);
-            holder.image = (ImageView) row.findViewById(R.id.movie_poster);
-            holder.imdb = (TextView) row.findViewById(R.id.movie_score);
-            holder.restricted = (TextView) row.findViewById(R.id.movie_restrictions);
-
+            holder = new CinemaHolder(row);
             row.setTag(holder);
         }
         else

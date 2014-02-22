@@ -9,5 +9,6 @@
     <string name="movie_poster">MoviePoster</string>
     <string name="no_schedules">Fann engar sýningar</string>
     <string name="try_again">Reyna aftur</string>
+    <string name="not_connected_network">Verður að tengjast neti til að sjá sýningar</string>
 
 </resources>
