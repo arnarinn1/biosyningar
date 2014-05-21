@@ -25,14 +25,14 @@ public class CinemaAdapter extends BaseAdapter
 {
     private Context mContext;
     private int layoutResourceId;
-    private List<CinemaMovie> movies;
+    private List<CinemaMovie> mMovies;
     private Picasso mPicassoInstance;
 
     public CinemaAdapter(Context context, int layoutResourceId, List<CinemaMovie> movies)
     {
         this.mContext = context;
         this.layoutResourceId = layoutResourceId;
-        this.movies = movies;
+        this.mMovies = movies;
         this.mPicassoInstance = new Picasso.Builder(context).memoryCache(new LruCache(10000000)).build();
     }
 
@@ -104,18 +104,20 @@ public class CinemaAdapter extends BaseAdapter
     @Override
     public int getCount()
     {
-        return (movies == null) ? 0 : movies.size();
+        return (mMovies == null) ? 0 : mMovies.size();
     }
 
     @Override
     public CinemaMovie getItem(int position)
     {
-        return movies.get(position);
+        return mMovies.get(position);
     }
 
     @Override
     public long getItemId(int position)
     {
-        return movies.indexOf(getItem(position));
+        return mMovies.indexOf(getItem(position));
     }
+
+    public void setMovies(List<CinemaMovie> movies) { this.mMovies = movies; }
 }

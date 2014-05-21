@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_new_post"
+        android:icon="@drawable/ic_action_filter"
+        android:title="@string/filter_showtimes"
+        app:showAsAction="always"
+        android:orderInCategory="1">
+
+        <menu>
+
+            <item
+                android:id="@+id/menu_filter_16_before"
+                android:checkable="true"
+                android:title="Fyrir kl. 16:00" />
+
+            <item
+                android:id="@+id/menu_filter_18_before"
+                android:checkable="true"
+                android:title="Fyrir kl. 18:00" />
+
+            <item
+                android:id="@+id/menu_filter_20_before"
+                android:checkable="true"
+                android:title="Fyrir kl. 20:00" />
+
+            <item
+                android:id="@+id/menu_filter_20_after"
+                android:checkable="true"
+                android:title="Eftir kl. 20:00" />
+
+            <item
+                android:id="@+id/menu_filter_22_after"
+                android:checkable="true"
+                android:title="Eftir kl. 22:00" />
+
+            <item
+                android:id="@+id/menu_no_filter"
+                android:title="Sýna allar sýningar" />
+
+        </menu>
+
+    </item>
+
+</menu>

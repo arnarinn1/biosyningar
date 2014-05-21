@@ -10,6 +10,7 @@ public interface Apis
     @GET("/{endpoint}")
     void getMovies
     (
-        @Path("endpoint") String endpoint, Callback<CinemaResults> movies
+        @Path("endpoint") String endpoint,
+                          Callback<CinemaResults> movies
     );
 }

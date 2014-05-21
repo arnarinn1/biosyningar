@@ -10,5 +10,6 @@
     <string name="no_schedules">Fann engar sýningar</string>
     <string name="try_again">Reyna aftur</string>
     <string name="not_connected_network">Verður að tengjast neti til að sjá sýningar</string>
+    <string name="filter_showtimes">Sía</string>
 
 </resources>

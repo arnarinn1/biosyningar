@@ -9,14 +9,24 @@ import android.net.NetworkInfo;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import com.slidinglayer.SlidingLayer;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -28,18 +38,18 @@ import retrofit.Callback;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
+import retrofit.mime.TypedInput;
 
 public class MainActivity extends ActionBarActivity implements AdapterView.OnItemClickListener
 {
-    public static final String ApisUrl = "http://apis.is";
-
     @InjectView(R.id.slidingLayer) SlidingLayer mSlidingLayer;
     @InjectView(R.id.cinemaSchedules) ListView mListView;
     @InjectView(R.id.progressIndicator) ProgressBar mProgressBar;
     @InjectView(R.id.error) TextView mErrorText;
 
     private CinemaAdapter mAdapter;
-    private Apis service;
+    private Apis mService;
+
     private Context getContext() { return this; }
 
     @Override
@@ -47,16 +57,91 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Initialize();
+    }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_cinema, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item)
+    {
+        int itemId = item.getItemId();
+
+        switch (itemId)
+        {
+            case R.id.menu_filter_16_before:
+                UpdateAdapterData("16:00", false, false);
+                break;
+
+            case R.id.menu_filter_18_before:
+                UpdateAdapterData("18:00", false, false);
+                break;
+
+            case R.id.menu_filter_20_before:
+                UpdateAdapterData("20:00", false, false);
+                break;
+
+            case R.id.menu_filter_20_after:
+                UpdateAdapterData("20:00", false, true);
+                break;
+
+            case R.id.menu_filter_22_after:
+                UpdateAdapterData("22:00", false, true);
+                break;
+
+            case R.id.menu_no_filter:
+                UpdateAdapterData("no_filter", true, true);
+                break;
+        }
+
+        return true;
+    }
+
+    /**
+     * Updates the movies in the adapter
+     *
+     * @param filterDate Filter date to compare to decide which movies will be discarded
+     * @param getAllMovies Boolean flag to decide if we want to show all movies
+     * @param afterParseDate Filter Dates based on after||before method on Date.class
+     */
+    private void UpdateAdapterData(String filterDate, boolean getAllMovies, boolean afterParseDate)
+    {
+        List<CinemaMovie> movies = GsonUtil.GetAllMovies(this);
+
+        if (getAllMovies)
+        {
+            mAdapter.setMovies(movies);
+            mAdapter.notifyDataSetChanged();
+        }
+        else
+        {
+            try
+            {
+                ListUtil util = new ListUtil(filterDate, afterParseDate);
+                List<CinemaMovie> filteredMovies = util.FilterMoviesByTime(movies);
+                mAdapter.setMovies(filteredMovies);
+                mAdapter.notifyDataSetChanged();
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private void Initialize()
+    {
         ButterKnife.inject(this);
-
         mListView.setOnItemClickListener(this);
 
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(ApisUrl)
-                .build();
-
-        service = restAdapter.create(Apis.class);
+        RestAdapter restAdapter = RetrofitUtil.RestAdapterInstance();
+        mService = restAdapter.create(Apis.class);
 
         registerReceiver(new ConnectionChangeReceiver(), new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
@@ -70,6 +155,10 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
             EnforceViewBehaviorOnNetworkCall(View.GONE);
 
             mAdapter = new CinemaAdapter(getContext(), R.layout.listview_cinema, cinemaResults.getMovies());
+
+            String responseBody = GetJsonResponseString(response.getBody());
+            getPreferences(MODE_PRIVATE).edit().putString(GsonUtil.EXTRA_MOVIECACHE, responseBody).commit();
+
             mListView.setAdapter(mAdapter);
         }
 
@@ -81,6 +170,36 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
             mErrorText.setText(R.string.no_schedules);
         }
     };
+
+    private String ConvertStreamToString(InputStream stream) throws Exception
+    {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+
+        String line;
+        while ((line = reader.readLine()) != null)
+        {
+            sb.append(line);
+        }
+
+        return sb.toString();
+    }
+
+    private String GetJsonResponseString(TypedInput body)
+    {
+        String response = null;
+        try
+        {
+            InputStream fu = body.in();
+            response = ConvertStreamToString(fu);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return response;
+    }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id)
@@ -135,9 +254,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                 if (mAdapter != null) return;
 
                 EnforceViewBehaviorOnNetworkCall(View.VISIBLE);
-                service.getMovies("cinema", callback);
-                Toast.makeText(context, "Connected to network", Toast.LENGTH_SHORT).show();
-
+                mService.getMovies("cinema", callback);
             }
             else
             {
@@ -148,8 +265,6 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                     mErrorText.setVisibility(View.VISIBLE);
                     mErrorText.setText(R.string.not_connected_network);
                 }
-
-                Toast.makeText( context, "Not connected to network", Toast.LENGTH_SHORT ).show();
             }
         }
     }
