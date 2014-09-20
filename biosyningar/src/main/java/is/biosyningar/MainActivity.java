@@ -24,8 +24,6 @@ import com.slidinglayer.SlidingLayer;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import butterknife.ButterKnife;
@@ -48,7 +46,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     @InjectView(R.id.error) TextView mErrorText;
 
     private CinemaAdapter mAdapter;
-    private Apis mService;
+    private ApisService mService;
 
     private Context getContext() { return this; }
 
@@ -65,16 +63,35 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_cinema, menu);
+
+        int state = getPreferences(MODE_PRIVATE).getInt("selector", 0);
+
+        if (state != 0)
+            menu.findItem(state).setChecked(true);
+
         return true;
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item)
+    public boolean onPrepareOptionsMenu(Menu menu)
     {
+        int state = getPreferences(MODE_PRIVATE).getInt("selector", 0);
+
+        MenuItem filter = menu.findItem(R.id.action_new_post);
+
+        if (state == 0)
+           filter.setIcon(R.drawable.ic_action_filter);
+        else
+            filter.setIcon(R.drawable.ic_action_filter_selected);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
 
-        switch (itemId)
-        {
+        switch (itemId) {
             case R.id.menu_filter_16_before:
                 UpdateAdapterData("16:00", false, false);
                 break;
@@ -100,6 +117,18 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                 break;
         }
 
+        if (itemId == R.id.menu_no_filter)
+        {
+            getPreferences(MODE_PRIVATE).edit().remove("selector").commit();
+            supportInvalidateOptionsMenu();
+            return true;
+        }
+
+        if (itemId != R.id.action_new_post)
+            getPreferences(MODE_PRIVATE).edit().putInt("selector", itemId).commit();
+
+        supportInvalidateOptionsMenu();
+
         return true;
     }
 
@@ -114,34 +143,37 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     {
         List<CinemaMovie> movies = GsonUtil.GetAllMovies(this);
 
-        if (getAllMovies)
+        try
         {
-            mAdapter.setMovies(movies);
-            mAdapter.notifyDataSetChanged();
-        }
-        else
-        {
-            try
+            if (getAllMovies)
             {
-                ListUtil util = new ListUtil(filterDate, afterParseDate);
+                mAdapter.setMovies(movies);
+                mAdapter.notifyDataSetChanged();
+            }
+            else
+            {
+                CinemaParser util = new CinemaParser(filterDate, afterParseDate);
                 List<CinemaMovie> filteredMovies = util.FilterMoviesByTime(movies);
                 mAdapter.setMovies(filteredMovies);
                 mAdapter.notifyDataSetChanged();
             }
-            catch (Exception ex)
-            {
-                ex.printStackTrace();
-            }
+
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
         }
     }
 
     private void Initialize()
     {
+        getPreferences(MODE_PRIVATE).edit().clear().commit();
+
         ButterKnife.inject(this);
         mListView.setOnItemClickListener(this);
 
         RestAdapter restAdapter = RetrofitUtil.RestAdapterInstance();
-        mService = restAdapter.create(Apis.class);
+        mService = restAdapter.create(ApisService.class);
 
         registerReceiver(new ConnectionChangeReceiver(), new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
@@ -151,6 +183,10 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         @Override
         public void success(CinemaResults cinemaResults, Response response)
         {
+            getPreferences(MODE_PRIVATE).edit().clear().commit();
+
+            supportInvalidateOptionsMenu();
+
             mErrorText.setVisibility(View.GONE);
             EnforceViewBehaviorOnNetworkCall(View.GONE);
 

@@ -3,7 +3,6 @@ package is.biosyningar;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
@@ -14,13 +13,13 @@ import is.biosyningar.datacontracts.CinemaShowtimes;
 /**
  * Created by Arnar on 18.5.2014.
  */
-public class ListUtil
+public class CinemaParser
 {
     DateFormat filterDateFormat = new SimpleDateFormat("hh:mm");
     boolean afterParseDate;
     Date filterDate;
 
-    public ListUtil(String time, boolean afterParseDate)
+    public CinemaParser(String time, boolean afterParseDate)
         throws ParseException
     {
         this.afterParseDate = afterParseDate;
