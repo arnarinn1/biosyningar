@@ -6,37 +6,37 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 import is.biosyningar.datacontracts.CinemaMovie;
 import is.biosyningar.datacontracts.CinemaShowtimes;
 
-/**
- * Created by Arnar on 18.5.2014.
- */
 public class CinemaParser
 {
-    DateFormat filterDateFormat = new SimpleDateFormat("hh:mm");
-    boolean afterParseDate;
-    Date filterDate;
+    private DateFormat filterDateFormat = new SimpleDateFormat("hh:mm");
+    private boolean afterParseDate;
+    private Date filterDate;
+    private Set<String> mCinemaSet;
 
-    public CinemaParser(String time, boolean afterParseDate)
+    public CinemaParser(String time, boolean afterParseDate, Set<String> cinemaSet)
         throws ParseException
     {
         this.afterParseDate = afterParseDate;
         this.filterDate =  filterDateFormat.parse(time);
+        this.mCinemaSet = cinemaSet;
     }
 
     public List<CinemaMovie> FilterMoviesByTime(List<CinemaMovie> movies)
             throws ParseException
     {
-        ListIterator<CinemaMovie> iteratorMovies = movies.listIterator();
+        FilterByTime(movies.listIterator());
 
-        ParseMovies(iteratorMovies );
+        FilterByCinema(movies.listIterator());
 
         return movies;
     }
 
-    private void ParseMovies(ListIterator<CinemaMovie> iteratorMovies)
+    private void FilterByTime(ListIterator<CinemaMovie> iteratorMovies)
             throws ParseException
     {
         while(iteratorMovies.hasNext())
@@ -49,9 +49,7 @@ public class CinemaParser
             {
                 List<String> showTimes = iteratorTheatres.next().getSchedule();
 
-                ListIterator<String> iterator = showTimes.listIterator();
-
-                ProcessShowTimes(iterator, afterParseDate);
+                ProcessShowTimes(showTimes.listIterator(), afterParseDate);
 
                 if(showTimes.size() == 0)
                     iteratorTheatres.remove();
@@ -86,6 +84,30 @@ public class CinemaParser
                     iterator.remove();
                 }
             }
+        }
+    }
+
+    private void FilterByCinema(ListIterator<CinemaMovie> cinemaMovieListIterator)
+    {
+        while(cinemaMovieListIterator.hasNext())
+        {
+            List<CinemaShowtimes> theaters = cinemaMovieListIterator.next().getShowtimes();
+
+            FilterTheaters(theaters.listIterator());
+
+            if(theaters.size() == 0)
+                cinemaMovieListIterator.remove();
+        }
+    }
+
+    private void FilterTheaters(ListIterator<CinemaShowtimes> iterator)
+    {
+        if (mCinemaSet.isEmpty()) return;
+
+        while(iterator.hasNext())
+        {
+            if (!mCinemaSet.contains(iterator.next().getTheater().toLowerCase()))
+                iterator.remove();
         }
     }
 }

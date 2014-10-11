@@ -21,10 +21,11 @@ import android.widget.TextView;
 
 import com.slidinglayer.SlidingLayer;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -36,7 +37,6 @@ import retrofit.Callback;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
-import retrofit.mime.TypedInput;
 
 public class MainActivity extends ActionBarActivity implements AdapterView.OnItemClickListener
 {
@@ -47,6 +47,10 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
 
     private CinemaAdapter mAdapter;
     private ApisService mService;
+    private Map<String, Integer> mCinemaMappings;
+
+    private static String mCinemaCacheFilter = "filterCinemas";
+    private static String mCinemaDateCacheFilter = "filterDateCinemas";
 
     private Context getContext() { return this; }
 
@@ -58,116 +62,11 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         Initialize();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_cinema, menu);
-
-        int state = getPreferences(MODE_PRIVATE).getInt("selector", 0);
-
-        if (state != 0)
-            menu.findItem(state).setChecked(true);
-
-        return true;
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu)
-    {
-        int state = getPreferences(MODE_PRIVATE).getInt("selector", 0);
-
-        MenuItem filter = menu.findItem(R.id.action_new_post);
-
-        if (state == 0)
-           filter.setIcon(R.drawable.ic_action_filter);
-        else
-            filter.setIcon(R.drawable.ic_action_filter_selected);
-
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
-
-        switch (itemId) {
-            case R.id.menu_filter_16_before:
-                UpdateAdapterData("16:00", false, false);
-                break;
-
-            case R.id.menu_filter_18_before:
-                UpdateAdapterData("18:00", false, false);
-                break;
-
-            case R.id.menu_filter_20_before:
-                UpdateAdapterData("20:00", false, false);
-                break;
-
-            case R.id.menu_filter_20_after:
-                UpdateAdapterData("20:00", false, true);
-                break;
-
-            case R.id.menu_filter_22_after:
-                UpdateAdapterData("22:00", false, true);
-                break;
-
-            case R.id.menu_no_filter:
-                UpdateAdapterData("no_filter", true, true);
-                break;
-        }
-
-        if (itemId == R.id.menu_no_filter)
-        {
-            getPreferences(MODE_PRIVATE).edit().remove("selector").commit();
-            supportInvalidateOptionsMenu();
-            return true;
-        }
-
-        if (itemId != R.id.action_new_post)
-            getPreferences(MODE_PRIVATE).edit().putInt("selector", itemId).commit();
-
-        supportInvalidateOptionsMenu();
-
-        return true;
-    }
-
-    /**
-     * Updates the movies in the adapter
-     *
-     * @param filterDate Filter date to compare to decide which movies will be discarded
-     * @param getAllMovies Boolean flag to decide if we want to show all movies
-     * @param afterParseDate Filter Dates based on after||before method on Date.class
-     */
-    private void UpdateAdapterData(String filterDate, boolean getAllMovies, boolean afterParseDate)
-    {
-        List<CinemaMovie> movies = GsonUtil.GetAllMovies(this);
-
-        try
-        {
-            if (getAllMovies)
-            {
-                mAdapter.setMovies(movies);
-                mAdapter.notifyDataSetChanged();
-            }
-            else
-            {
-                CinemaParser util = new CinemaParser(filterDate, afterParseDate);
-                List<CinemaMovie> filteredMovies = util.FilterMoviesByTime(movies);
-                mAdapter.setMovies(filteredMovies);
-                mAdapter.notifyDataSetChanged();
-            }
-
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-        }
-    }
-
     private void Initialize()
     {
-        getPreferences(MODE_PRIVATE).edit().clear().commit();
+        InitializeCinemaMappings();
+
+        Prefs.with(this).Clear();
 
         ButterKnife.inject(this);
         mListView.setOnItemClickListener(this);
@@ -178,12 +77,141 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         registerReceiver(new ConnectionChangeReceiver(), new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
+    private void InitializeCinemaMappings()
+    {
+        mCinemaMappings = new HashMap<String, Integer>();
+        mCinemaMappings.put("sambíóin akureyri", R.id.menu_akureyri);
+        mCinemaMappings.put("borgarbíó", R.id.menu_borgarbio);
+        mCinemaMappings.put("sambíóin keflavík", R.id.menu_keflavik);
+        mCinemaMappings.put("bíó paradís", R.id.menu_paradis);
+        mCinemaMappings.put("háskólabíó", R.id.menu_haskolabio);
+        mCinemaMappings.put("smárabíó", R.id.menu_smarabio);
+        mCinemaMappings.put("laugarásbíó", R.id.menu_laugarasbio);
+        mCinemaMappings.put("sambíóin kringlunni", R.id.menu_kringlan);
+        mCinemaMappings.put("sambíóin álfabakka", R.id.menu_alfabakki);
+        mCinemaMappings.put("sambíóin egilshöll", R.id.menu_egilsholl);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_cinema, menu);
+
+        SetCinemaDateMenuCheckStates(menu);
+        SetCinemaMenuCheckStates(menu);
+
+        return true;
+    }
+
+    private void SetCinemaMenuCheckStates(Menu menu)
+    {
+        Set<String> cachedCinemas = Prefs.with(this).GetStringSet(mCinemaCacheFilter, new HashSet<String>());
+
+        for (String cinema : cachedCinemas)
+        {
+            if (mCinemaMappings.containsKey(cinema))
+            {
+                menu.findItem(mCinemaMappings.get(cinema)).setChecked(true);
+            }
+        }
+    }
+
+    private void SetCinemaDateMenuCheckStates(Menu menu)
+    {
+        int state = Prefs.with(this).GetInt(mCinemaDateCacheFilter, 0);
+        if (state != 0)
+            menu.findItem(state).setChecked(true);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu)
+    {
+        int state = Prefs.with(this).GetInt(mCinemaDateCacheFilter, 0);
+
+        MenuItem filter = menu.findItem(R.id.action_filter_by_time);
+        MenuItem cinemaFilter = menu.findItem(R.id.action_cinemas);
+
+        if (state == 0)
+           filter.setIcon(R.drawable.ic_action_filter);
+        else
+            filter.setIcon(R.drawable.ic_action_filter_selected);
+
+        Set<String> cinemaSet = Prefs.with(this).GetStringSet(mCinemaCacheFilter, new HashSet<String>());
+        if (cinemaSet.isEmpty())
+            cinemaFilter.setIcon(R.drawable.ic_action_filter);
+        else
+            cinemaFilter.setIcon(R.drawable.ic_action_filter_selected);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+
+        switch (itemId) {
+            case R.id.menu_filter_16_before:
+                AddDateToCache(itemId, "16:00", false);
+                break;
+
+            case R.id.menu_filter_18_before:
+                AddDateToCache(itemId, "18:00", false);
+                break;
+
+            case R.id.menu_filter_20_before:
+                AddDateToCache(itemId, "20:00", false);
+                break;
+
+            case R.id.menu_filter_20_after:
+                AddDateToCache(itemId, "20:00", true);
+                break;
+
+            case R.id.menu_filter_22_after:
+                AddDateToCache(itemId, "22:00", true);
+                break;
+
+            case R.id.menu_no_filter:
+                AddDateToCache(itemId, "23:30", false);
+                break;
+
+            case R.id.menu_akureyri:
+            case R.id.menu_borgarbio:
+            case R.id.menu_keflavik:
+            case R.id.menu_paradis:
+            case R.id.menu_smarabio:
+            case R.id.menu_haskolabio:
+            case R.id.menu_laugarasbio:
+            case R.id.menu_alfabakki:
+            case R.id.menu_egilsholl:
+            case R.id.menu_kringlan:
+                AddCinemaToCache(item);
+                UpdateAdapterData("23:30", false);
+                break;
+
+            case R.id.menu_showAllCinemas:
+                Prefs.with(this).Remove(mCinemaCacheFilter);
+                UpdateAdapterData("23:30", false);
+        }
+
+        if (itemId == R.id.menu_no_filter)
+        {
+            Prefs.with(this).Remove(mCinemaDateCacheFilter);
+            supportInvalidateOptionsMenu();
+            return true;
+        }
+
+        supportInvalidateOptionsMenu();
+
+        return true;
+    }
+
     Callback<CinemaResults> callback = new Callback<CinemaResults>()
     {
         @Override
         public void success(CinemaResults cinemaResults, Response response)
         {
-            getPreferences(MODE_PRIVATE).edit().clear().commit();
+            Prefs.with(getContext()).Clear();
 
             supportInvalidateOptionsMenu();
 
@@ -192,8 +220,8 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
 
             mAdapter = new CinemaAdapter(getContext(), R.layout.listview_cinema, cinemaResults.getMovies());
 
-            String responseBody = GetJsonResponseString(response.getBody());
-            getPreferences(MODE_PRIVATE).edit().putString(GsonUtil.EXTRA_MOVIECACHE, responseBody).commit();
+            String responseBody = StreamUtil.GetJsonResponseString(response.getBody());
+            Prefs.with(getContext()).Save(GsonUtil.EXTRA_MOVIECACHE, responseBody);
 
             mListView.setAdapter(mAdapter);
         }
@@ -206,36 +234,6 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
             mErrorText.setText(R.string.no_schedules);
         }
     };
-
-    private String ConvertStreamToString(InputStream stream) throws Exception
-    {
-        StringBuilder sb = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-
-        String line;
-        while ((line = reader.readLine()) != null)
-        {
-            sb.append(line);
-        }
-
-        return sb.toString();
-    }
-
-    private String GetJsonResponseString(TypedInput body)
-    {
-        String response = null;
-        try
-        {
-            InputStream fu = body.in();
-            response = ConvertStreamToString(fu);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        return response;
-    }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id)
@@ -269,6 +267,48 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                 }
             default:
                 return super.onKeyDown(keyCode, event);
+        }
+    }
+
+    private void AddDateToCache(int itemId, String dateTime, boolean afterParseDate)
+    {
+        Prefs.with(this).Save(mCinemaDateCacheFilter, itemId);
+        UpdateAdapterData(dateTime, afterParseDate);
+    }
+
+    private void AddCinemaToCache(MenuItem item)
+    {
+        String value = item.getTitle().toString().toLowerCase();
+        Set<String> stringSet = Prefs.with(this).GetStringSet(mCinemaCacheFilter, new HashSet<String>());
+
+        if (stringSet.contains(value))
+            stringSet.remove(value);
+        else
+            stringSet.add(value);
+
+        Prefs.with(this).Save(mCinemaCacheFilter, stringSet);
+    }
+
+    /**
+     * Updates the movies in the adapter
+     *
+     * @param filterDate Filter date to compare to decide which movies will be discarded
+     * @param afterParseDate Filter Dates based on after||before method on Date.class
+     */
+    private void UpdateAdapterData(String filterDate, boolean afterParseDate)
+    {
+        List<CinemaMovie> movies = GsonUtil.GetAllMovies(this);
+
+        try
+        {
+            CinemaParser util = new CinemaParser(filterDate, afterParseDate, Prefs.with(this).GetStringSet(mCinemaCacheFilter, new HashSet<String>()));
+            List<CinemaMovie> filteredMovies = util.FilterMoviesByTime(movies);
+            mAdapter.setMovies(filteredMovies);
+            mAdapter.notifyDataSetChanged();
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
         }
     }
 
